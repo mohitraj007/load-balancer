@@ -20,10 +20,10 @@ This project implements a load balancer in Java using Spring Boot, along with ba
 ## Setup Instructions
 
 ### Prerequisites
-- **Java Development Kit (JDK) 11 or higher**: Ensure that Java is installed on your system. You can download it from [Oracle's official website](https://www.oracle.com/java/technologies/javase-downloads.html).
+- **Java Development Kit (JDK) 11**: Ensure that Java is installed on your system. You can download it from [Oracle's official website](https://www.oracle.com/java/technologies/javase-downloads.html).
 - **Apache Maven**: This project uses Maven for build automation. You can download it from the [official Maven website](https://maven.apache.org/download.cgi).
 - **Python 3.x** (for running the Python backend servers): Download it from the [official Python website](https://www.python.org/downloads/).
-
+- **Jmeter** (optional, for load testing): Download it from the [official Jmeter website](https://jmeter.apache.org/download_jmeter.cgi).
 ### Project Structure
 The project is organized into 1 module:
 - **load-balancer-application**: Contains the code for the load balancer.
@@ -40,14 +40,14 @@ load-balancer/
 ```
 
 ### Building the Project
-Clone the Repository:
+#### Clone the Repository:
 
 ```
 git clone https://github.com/mohitraj007/load-balancer.git
 cd load-balancer-project
 ```
 
-### Build the Modules:
+#### Build the Modules:
 
 Use Maven to build both modules. Ensure you have Maven installed and configured in your system's PATH.
 
@@ -174,3 +174,10 @@ The application consists of a load balancer that distributes incoming client req
 - LoadBalancingAlgorithm Interface: Defines the contract for different load balancing algorithms. Implementations include RoundRobinAlgorithm and RandomAlgorithm.
 
 For detailed code implementation, please refer to the respective source files in the project repository.
+
+## Further Enhancements
+- Move to Vert.x instead of Spring Boot for a much highly scalable solution out-of-the-box
+- Store the servers and default algorithm in an SQL DB
+- Implement realtime server monitoring using Prometheus
+- Add more algorithms to the interface
+- Implement a firewall on top of it to deny requests coming from unwanted sources

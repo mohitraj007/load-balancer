@@ -17,6 +17,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -30,8 +31,8 @@ public class LoadBalancerService {
     private HttpClient client;
     private final Map<String, LoadBalancingAlgorithm> algorithms = new HashMap<>();
     private LoadBalancingAlgorithm currentAlgorithm;
+    private final List<String> allServers = new CopyOnWriteArrayList<>();
     private final List<String> activeServers = new CopyOnWriteArrayList<>();
-    private final List<String> manuallyRemovedServers = new CopyOnWriteArrayList<>();
 
     @Autowired
     public LoadBalancerService(ConfigProperties configProperties, HttpClient client) {
@@ -45,10 +46,14 @@ public class LoadBalancerService {
 
     @EventListener(EnvironmentChangeEvent.class)
     public void loadConfiguration() {
-        setAlgorithm(configProperties.getAlgorithm());
+        allServers.clear();
+        allServers.addAll(configProperties.getServers());
+
         activeServers.clear();
-        activeServers.addAll(configProperties.getServers());
-        logger.info("Load balancer configuration loaded with algorithm: {} and servers: {}", currentAlgorithm, activeServers);
+        activeServers.addAll(allServers);
+
+        setAlgorithm(configProperties.getAlgorithm());
+        logger.info("Load balancer configuration loaded with algorithm: {} and servers: {}", currentAlgorithm, allServers);
     }
 
     public String setAlgorithm(String algo) {
@@ -60,42 +65,41 @@ public class LoadBalancerService {
     }
 
     public List<String> getServers() {
-        return activeServers;
+        return new ArrayList<>(allServers);
+    }
+
+    public List<String> getActiveServers() {
+        return new ArrayList<>(activeServers);
     }
 
     public String addServer(String serverUrl) {
-        if (manuallyRemovedServers.contains(serverUrl)) {
-            manuallyRemovedServers.remove(serverUrl);
+        if (!allServers.contains(serverUrl)) {
+            allServers.add(serverUrl);
+            logger.info("Server {} added to the list of all servers", serverUrl);
+            return "Server added successfully. It will be added to active servers if it passes health check.";
         }
-        if (!activeServers.contains(serverUrl)) {
-            activeServers.add(serverUrl);
-            logger.info("Server {} added to the active list", serverUrl);
-            return "Server added successfully.";
-        }
-        return "Server already exists in the active list.";
+        return "Server already exists.";
     }
 
     public String removeServer(String serverUrl) {
-        if (activeServers.remove(serverUrl)) {
-            manuallyRemovedServers.add(serverUrl);
-            logger.info("Server {} removed from the active list", serverUrl);
+        if (allServers.remove(serverUrl)) {
+            activeServers.remove(serverUrl);
+            logger.info("Server {} removed from all servers", serverUrl);
             return "Server removed successfully.";
         }
-        return "Server not found in the active list.";
+        return "Server not found.";
     }
 
     @Scheduled(fixedRate = 5000)
     public void healthCheck() {
-        for (String server : configProperties.getServers()) {
-            if (manuallyRemovedServers.contains(server)) {
-                continue; // Skip manually removed servers
-            }
+        for (String server : allServers) {
             try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(server + "/health"))
                         .GET()
                         .build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
                 if (response.statusCode() == 200) {
                     if (!activeServers.contains(server)) {
                         activeServers.add(server);
@@ -112,14 +116,12 @@ public class LoadBalancerService {
         }
     }
 
-
     public String forwardRequest(String path) {
         try {
-            List<String> servers = getServers();
-            if (servers.isEmpty()) {
+            if (activeServers.isEmpty()) {
                 return "No available servers";
             }
-            String server = currentAlgorithm.selectServer(servers);
+            String server = currentAlgorithm.selectServer(activeServers);
             if (server == null) return "No available servers";
             logger.info("Server {} selected using {}", server, currentAlgorithm);
             HttpRequest request = HttpRequest.newBuilder()

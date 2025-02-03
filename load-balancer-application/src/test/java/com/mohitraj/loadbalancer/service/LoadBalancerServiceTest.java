@@ -99,7 +99,7 @@ class LoadBalancerServiceTest {
         String result = loadBalancerService.addServer(serverUrl);
 
         // Assert
-        assertEquals("Server added successfully.", result);
+        assertEquals("Server added successfully. It will be added to active servers if it passes health check.", result);
         assertTrue(loadBalancerService.getServers().contains(serverUrl));
     }
 
@@ -113,7 +113,7 @@ class LoadBalancerServiceTest {
         String result = loadBalancerService.addServer(serverUrl);
 
         // Assert
-        assertEquals("Server already exists in the active list.", result);
+        assertEquals("Server already exists.", result);
     }
 
     @Test
@@ -139,7 +139,7 @@ class LoadBalancerServiceTest {
         String result = loadBalancerService.removeServer(serverUrl);
 
         // Assert
-        assertEquals("Server not found in the active list.", result);
+        assertEquals("Server not found.", result);
     }
 
     // @Disabled("Skipping this test for now")
@@ -179,12 +179,12 @@ class LoadBalancerServiceTest {
         when(configProperties.getServers()).thenReturn(Arrays.asList(serverUrl));
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(httpResponse);
         when(httpResponse.statusCode()).thenReturn(200);
-
+        loadBalancerService = new LoadBalancerService(configProperties, httpClient);
         // Act
         loadBalancerService.healthCheck();
 
         // Assert
-        assertTrue(loadBalancerService.getServers().contains(serverUrl));
+        assertTrue(loadBalancerService.getActiveServers().contains(serverUrl));
         verify(httpClient, times(1)).send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class));
     }
 
@@ -195,12 +195,12 @@ class LoadBalancerServiceTest {
         when(configProperties.getServers()).thenReturn(Arrays.asList(serverUrl));
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(httpResponse);
         when(httpResponse.statusCode()).thenReturn(500);
-
+        loadBalancerService = new LoadBalancerService(configProperties, httpClient);
         // Act
         loadBalancerService.healthCheck();
 
         // Assert
-        assertFalse(loadBalancerService.getServers().contains(serverUrl));
+        assertFalse(loadBalancerService.getActiveServers().contains(serverUrl));
         verify(httpClient, times(1)).send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class));
     }
 
@@ -210,12 +210,12 @@ class LoadBalancerServiceTest {
         String serverUrl = "http://localhost:8081";
         when(configProperties.getServers()).thenReturn(Arrays.asList(serverUrl));
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenThrow(new RuntimeException("Connection error"));
-
+        loadBalancerService = new LoadBalancerService(configProperties, httpClient);
         // Act
         loadBalancerService.healthCheck();
 
         // Assert
-        assertFalse(loadBalancerService.getServers().contains(serverUrl));
+        assertFalse(loadBalancerService.getActiveServers().contains(serverUrl));
         verify(httpClient, times(1)).send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class));
     }
 }
