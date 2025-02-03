@@ -44,20 +44,19 @@ class LoadBalancerServiceTest {
     @InjectMocks
     private LoadBalancerService loadBalancerService;
 
+    private List<String> servers = Arrays.asList("http://localhost:8081", "http://localhost:8082");
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        when(configProperties.getAlgorithm()).thenReturn("round-robin");
+        when(configProperties.getServers()).thenReturn(servers);
     }
 
-    @Disabled("Skipping this test for now")
     @Test
     void testSetAlgorithm() {
         // Arrange
-        loadBalancerService = new LoadBalancerService(configProperties);
-        loadBalancerService.setAlgorithm("round-robin"); // Default algorithm
-
-        when(configProperties.getAlgorithm()).thenReturn("round-robin");
-
+        loadBalancerService = new LoadBalancerService(configProperties, httpClient);
         // Act
         String result = loadBalancerService.setAlgorithm("random");
 
@@ -69,11 +68,7 @@ class LoadBalancerServiceTest {
     @Test
     void testSetAlgorithmInvalid() {
         // Arrange
-        loadBalancerService = new LoadBalancerService(configProperties);
-        loadBalancerService.setAlgorithm("round-robin"); // Default algorithm
-
-        when(configProperties.getAlgorithm()).thenReturn("round-robin");
-
+        loadBalancerService = new LoadBalancerService(configProperties, httpClient);
         // Act
         String result = loadBalancerService.setAlgorithm("invalid-algo");
 
@@ -84,14 +79,9 @@ class LoadBalancerServiceTest {
     @Test
     void testGetServers() {
         // Arrange
-        List<String> servers = Arrays.asList("http://localhost:8081", "http://localhost:8082");
-        when(configProperties.getServers()).thenReturn(servers);
-        loadBalancerService = new LoadBalancerService(configProperties);
-        loadBalancerService.setAlgorithm("round-robin"); // Default algorithm
-
+        loadBalancerService = new LoadBalancerService(configProperties, httpClient);
         // Act
         List<String> result = loadBalancerService.getServers();
-
         // Assert
         assertEquals(servers, result);
         verify(configProperties, times(2)).getServers();
@@ -100,7 +90,7 @@ class LoadBalancerServiceTest {
     @Test
     void testAddServer() {
         // Arrange
-        loadBalancerService = new LoadBalancerService(configProperties);
+        loadBalancerService = new LoadBalancerService(configProperties, httpClient);
         loadBalancerService.setAlgorithm("round-robin"); // Default algorithm
 
         String serverUrl = "http://localhost:8083";
@@ -113,13 +103,12 @@ class LoadBalancerServiceTest {
         assertTrue(loadBalancerService.getServers().contains(serverUrl));
     }
 
-    @Disabled("Skipping this test for now")
     @Test
     void testAddServerAlreadyExists() {
         // Arrange
         String serverUrl = "http://localhost:8081";
         when(configProperties.getServers()).thenReturn(Arrays.asList(serverUrl));
-
+        loadBalancerService = new LoadBalancerService(configProperties, httpClient);
         // Act
         String result = loadBalancerService.addServer(serverUrl);
 
@@ -127,13 +116,12 @@ class LoadBalancerServiceTest {
         assertEquals("Server already exists in the active list.", result);
     }
 
-    @Disabled("Skipping this test for now")
     @Test
     void testRemoveServer() {
         // Arrange
         String serverUrl = "http://localhost:8081";
         when(configProperties.getServers()).thenReturn(Arrays.asList(serverUrl));
-
+        loadBalancerService = new LoadBalancerService(configProperties, httpClient);
         // Act
         String result = loadBalancerService.removeServer(serverUrl);
 
@@ -154,7 +142,7 @@ class LoadBalancerServiceTest {
         assertEquals("Server not found in the active list.", result);
     }
 
-    @Disabled("Skipping this test for now")
+    // @Disabled("Skipping this test for now")
     @Test
     void testForwardRequest() throws Exception {
         // Arrange
@@ -164,12 +152,9 @@ class LoadBalancerServiceTest {
         when(roundRobinAlgorithm.selectServer(anyList())).thenReturn(serverUrl);
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(httpResponse);
         when(httpResponse.body()).thenReturn("Response from server");
-        loadBalancerService = new LoadBalancerService(configProperties);
-        loadBalancerService.setAlgorithm("round-robin"); // Default algorithm
-
+        loadBalancerService = new LoadBalancerService(configProperties, httpClient);
         // Act
         String result = loadBalancerService.forwardRequest(path);
-
         // Assert
         assertEquals("Response from server", result);
         verify(httpClient, times(1)).send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class));
@@ -187,7 +172,6 @@ class LoadBalancerServiceTest {
         assertEquals("No available servers", result);
     }
 
-    @Disabled("Skipping this test for now")
     @Test
     void testHealthCheck() throws Exception {
         // Arrange
@@ -204,7 +188,6 @@ class LoadBalancerServiceTest {
         verify(httpClient, times(1)).send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class));
     }
 
-    @Disabled("Skipping this test for now")
     @Test
     void testHealthCheckUnhealthyServer() throws Exception {
         // Arrange
@@ -221,7 +204,6 @@ class LoadBalancerServiceTest {
         verify(httpClient, times(1)).send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class));
     }
 
-    @Disabled("Skipping this test for now")
     @Test
     void testHealthCheckException() throws Exception {
         // Arrange

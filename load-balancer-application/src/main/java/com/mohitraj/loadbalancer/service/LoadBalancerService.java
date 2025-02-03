@@ -27,16 +27,19 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class LoadBalancerService {
     private static final Logger logger = LoggerFactory.getLogger(LoadBalancerService.class);
     private final ConfigProperties configProperties;
-    private HttpClient client = HttpClient.newHttpClient();
+    private HttpClient client;
     private final Map<String, LoadBalancingAlgorithm> algorithms = new HashMap<>();
     private LoadBalancingAlgorithm currentAlgorithm;
     private final List<String> activeServers = new CopyOnWriteArrayList<>();
+    private final List<String> manuallyRemovedServers = new CopyOnWriteArrayList<>();
 
     @Autowired
-    public LoadBalancerService(ConfigProperties configProperties) {
+    public LoadBalancerService(ConfigProperties configProperties, HttpClient client) {
         this.configProperties = configProperties;
         algorithms.put("round-robin", new RoundRobinAlgorithm());
         algorithms.put("random", new RandomAlgorithm());
+        this.client = client != null ? client : HttpClient.newHttpClient();
+
         loadConfiguration();
     }
 
@@ -61,6 +64,9 @@ public class LoadBalancerService {
     }
 
     public String addServer(String serverUrl) {
+        if (manuallyRemovedServers.contains(serverUrl)) {
+            manuallyRemovedServers.remove(serverUrl);
+        }
         if (!activeServers.contains(serverUrl)) {
             activeServers.add(serverUrl);
             logger.info("Server {} added to the active list", serverUrl);
@@ -71,6 +77,7 @@ public class LoadBalancerService {
 
     public String removeServer(String serverUrl) {
         if (activeServers.remove(serverUrl)) {
+            manuallyRemovedServers.add(serverUrl);
             logger.info("Server {} removed from the active list", serverUrl);
             return "Server removed successfully.";
         }
@@ -80,6 +87,9 @@ public class LoadBalancerService {
     @Scheduled(fixedRate = 5000)
     public void healthCheck() {
         for (String server : configProperties.getServers()) {
+            if (manuallyRemovedServers.contains(server)) {
+                continue; // Skip manually removed servers
+            }
             try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(server + "/health"))
@@ -101,6 +111,7 @@ public class LoadBalancerService {
             }
         }
     }
+
 
     public String forwardRequest(String path) {
         try {

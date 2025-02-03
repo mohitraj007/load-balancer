@@ -3,6 +3,7 @@ package com.mohitraj.loadbalancer.config;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 import java.util.Arrays;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
+@Import(HttpClientConfig.class) // Ensure this is imported if not automatically scanned
 class ConfigPropertiesTest {
 
     private ConfigProperties configProperties;

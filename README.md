@@ -85,9 +85,9 @@ Run Multiple Instances:
 
 Open multiple terminal windows or tabs and run the script on different ports:
 ```
-python3 backend_server.py 8081
-python3 backend_server.py 8082
-python3 backend_server.py 8083
+python backend-server.py 8081
+python backend-server.py 8082
+python backend-server.py 8083
 ```
 
 Each command starts a backend server instance on the specified port.
