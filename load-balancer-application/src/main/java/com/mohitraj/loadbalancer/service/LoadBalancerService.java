@@ -121,7 +121,7 @@ public class LoadBalancerService {
             }
             String server = currentAlgorithm.selectServer(servers);
             if (server == null) return "No available servers";
-
+            logger.info("Server {} selected using {}", server, currentAlgorithm);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(server + path))
                     .GET()

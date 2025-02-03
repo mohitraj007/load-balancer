@@ -112,9 +112,11 @@ Each command starts a backend server instance on the specified port.
 >
 > Method: GET
 >
-> Parameters: path (query parameter): The path to forward the request to on the selected backend server.
+> Parameters: path (query parameter): The path to forward the request to on the selected backend server. Currently, only /data is the supported path since the python servers are for testing purposes.
 >
 > Sample Request: curl "http://localhost:8080/loadbalancer/proxy?path=/data"
+> 
+> To load test the load balancer, Jmeter can be used to make multiple concurrent requests
 
 #### 3. List backend servers:
 
@@ -132,7 +134,7 @@ Each command starts a backend server instance on the specified port.
 >
 > Parameters: serverUrl (query parameter): The server URL to add.
 >
-> Sample Request: curl -X POST "http://localhost:8080/loadbalancer/servers?serverUrl=localhost:8088"
+> Sample Request: curl -X POST "http://localhost:8080/loadbalancer/servers?serverUrl=http://localhost:8088"
 
 #### 5. Remove backend server:
 
@@ -142,7 +144,7 @@ Each command starts a backend server instance on the specified port.
 >
 > Parameters: serverUrl (query parameter): The server URL to delete.
 >
-> Sample Request: curl -X DELETE "http://localhost:8080/loadbalancer/servers?serverUrl=localhost:8088"
+> Sample Request: curl -X DELETE "http://localhost:8080/loadbalancer/servers?serverUrl=http://localhost:8088"
 
 ### Backend Server APIs
 #### 1. Health Check:
